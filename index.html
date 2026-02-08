@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Página rosa</title>
+    <style>
+        body {
+            background-color: pink;
+            color: black;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            margin-top: 40px;
+        }
+
+        img {
+            width: 250px;
+        }
+
+        .texto {
+            margin-top: 30px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        button {
+            font-size: 20px;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+        #si {
+            transition: transform 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- GIF -->
+        <img src="https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif" alt="gif">
+
+        <!-- Texto -->
+        <div class="texto" id="texto">
+            ¿Aceptás ser mi San Valentín? ❤️
+        </div>
+
+        <!-- Botones -->
+        <div class="buttons">
+            <button id="si">Sí</button>
+            <button id="no">No</button>
+        </div>
+    </div>
+
+    <script>
+        let escala = 1;
+
+        document.getElementById("no").addEventListener("click", () => {
+            escala += 2.2;
+            document.getElementById("si").style.transform = `scale(${escala})`;
+        });
+
+        document.getElementById("si").addEventListener("click", () => {
+            document.getElementById("texto").innerText = "Sabía que ibas a decir que sí 💖";
+        });
+    </script>
+
+</body>
+</html>
