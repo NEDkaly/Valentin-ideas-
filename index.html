@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Página rosa</title>
+    <title>San Valentín</title>
     <style>
         body {
             background-color: pink;
@@ -46,15 +46,12 @@
 <body>
 
     <div class="container">
-        <!-- GIF -->
         <img src="https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif" alt="gif">
 
-        <!-- Texto -->
         <div class="texto" id="texto">
-            ¿Aceptás ser mi San Valentín? ❤️
+            ¿Querés ser mi San Valentín? 💖
         </div>
 
-        <!-- Botones -->
         <div class="buttons">
             <button id="si">Sí</button>
             <button id="no">No</button>
@@ -65,12 +62,13 @@
         let escala = 1;
 
         document.getElementById("no").addEventListener("click", () => {
-            escala += 2.2;
+            escala += 0.2;
             document.getElementById("si").style.transform = `scale(${escala})`;
         });
 
         document.getElementById("si").addEventListener("click", () => {
-            document.getElementById("texto").innerText = "Sabía que ibas a decir que sí 💖";
+            document.getElementById("texto").innerText =
+                "Sabía que ibas a decir que sí 💘";
         });
     </script>
 
