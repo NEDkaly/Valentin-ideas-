@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- SDK de Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg: #0A0A0A;
@@ -29,7 +31,7 @@
   }
   #map{ position:absolute; inset:0; z-index:1; }
 
-  /* ---------- Top bar ---------- */
+  /* Top bar */
   .topbar{
     position:absolute; top:0; left:0; right:0; z-index:500;
     display:flex; align-items:center; justify-content:space-between;
@@ -41,220 +43,108 @@
   .brand-badge{
     width:46px; height:46px; border-radius:50%;
     background: conic-gradient(from 200deg, var(--pink), var(--orange), var(--yellow), var(--pink));
-    padding:2.5px;
-    flex-shrink:0;
-    position:relative;
+    padding:2.5px; flex-shrink:0; position:relative;
   }
   .brand-badge-inner{
-    width:100%; height:100%; border-radius:50%;
-    background:#000;
-    display:flex; align-items:center; justify-content:center;
-    position:relative;
+    width:100%; height:100%; border-radius:50%; background:#000;
+    display:flex; align-items:center; justify-content:center; position:relative;
   }
-  .brand-badge-inner span{
-    font-family:'Bebas Neue', sans-serif; font-size:19px; letter-spacing:0.5px; color:#fff;
-  }
-  .brand-badge-inner small{
-    position:absolute; top:6px; right:6px;
-    font-size:6px; font-weight:700; color:var(--yellow); letter-spacing:0.5px;
-  }
-  .brand-text h1{
-    font-family:'Bebas Neue', sans-serif;
-    font-size:24px; letter-spacing:1.5px;
-    color:var(--text);
-    line-height:1;
-  }
+  .brand-badge-inner span{ font-family:'Bebas Neue', sans-serif; font-size:19px; letter-spacing:0.5px; color:#fff; }
+  .brand-badge-inner small{ position:absolute; top:6px; right:6px; font-size:6px; font-weight:700; color:var(--yellow); letter-spacing:0.5px; }
+  .brand-text h1{ font-family:'Bebas Neue', sans-serif; font-size:24px; letter-spacing:1.5px; color:var(--text); line-height:1; }
   .brand-text small{ color:var(--muted); font-size:11px; letter-spacing:1px; text-transform:uppercase;}
 
   .topbar-actions{ display:flex; gap:10px; pointer-events:auto; }
-  .btn-add, .btn-share{
-    border:none;
-    font-family:'Space Grotesk', sans-serif;
-    font-weight:700;
-    font-size:14px;
-    padding:12px 18px;
-    border-radius:999px;
-    cursor:pointer;
-    letter-spacing:0.3px;
+  .btn-add, .btn-share, .btn-login{
+    border:none; font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:14px;
+    padding:12px 18px; border-radius:999px; cursor:pointer; letter-spacing:0.3px;
     transition: transform .15s ease, box-shadow .15s ease;
   }
-  .btn-add{
-    background:var(--yellow);
-    color:#000;
-    box-shadow:0 6px 20px rgba(255,212,0,0.3);
-  }
-  .btn-add:hover{ transform:translateY(-1px); box-shadow:0 8px 24px rgba(255,212,0,0.45); }
+  .btn-add{ background:var(--yellow); color:#000; box-shadow:0 6px 20px rgba(255,212,0,0.3); display:none; }
   .btn-add.placing{ background:var(--pink); color:#fff; box-shadow:0 6px 20px rgba(228,38,122,0.4); }
-  .btn-share{
-    background:transparent;
-    color:var(--text);
-    border:1px solid var(--line);
-    display:flex; align-items:center; gap:6px;
-  }
-  .btn-share:hover{ border-color:var(--yellow); color:var(--yellow); }
-  .btn-add:focus-visible, .btn-share:focus-visible{ outline:2px solid var(--pink); outline-offset:2px; }
+  .btn-share, .btn-login{ background:transparent; color:var(--text); border:1px solid var(--line); display:flex; align-items:center; gap:6px; }
+  .btn-share:hover, .btn-login:hover{ border-color:var(--yellow); color:var(--yellow); }
 
-  /* ---------- Hint banner while placing pin ---------- */
+  /* Hint banner */
   .hint{
-    position:absolute; top:88px; left:50%; transform:translateX(-50%);
-    z-index:600;
-    background:var(--yellow); color:#1a1400;
-    font-weight:700; font-size:13px;
-    padding:10px 18px; border-radius:999px;
-    display:none;
-    box-shadow:0 6px 20px rgba(0,0,0,0.5);
+    position:absolute; top:88px; left:50%; transform:translateX(-50%); z-index:600;
+    background:var(--yellow); color:#1a1400; font-weight:700; font-size:13px;
+    padding:10px 18px; border-radius:999px; display:none; box-shadow:0 6px 20px rgba(0,0,0,0.5);
   }
   .hint.show{ display:block; }
 
-  /* ---------- Toast ---------- */
+  /* Toast */
   .toast{
-    position:absolute; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
-    z-index:1000;
+    position:absolute; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); z-index:1000;
     background:var(--panel-2); color:var(--text); border:1px solid var(--line);
-    padding:12px 20px; border-radius:999px; font-size:13px; font-weight:600;
-    opacity:0; pointer-events:none;
+    padding:12px 20px; border-radius:999px; font-size:13px; font-weight:600; opacity:0; pointer-events:none;
     transition: opacity .2s ease, transform .2s ease;
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-  /* ---------- Sidebar list ---------- */
+  /* Sidebar list */
   .sidebar{
-    position:absolute; top:0; right:0; bottom:0; z-index:400;
-    width:340px; max-width:88vw;
-    background:var(--panel);
-    border-left:1px solid var(--line);
-    display:flex; flex-direction:column;
-    transform:translateX(0);
-    transition: transform .25s ease;
+    position:absolute; top:0; right:0; bottom:0; z-index:400; width:340px; max-width:88vw;
+    background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column;
+    transform:translateX(0); transition: transform .25s ease;
   }
   .sidebar.collapsed{ transform:translateX(100%); }
-  .sidebar-header{
-    padding:78px 20px 14px;
-    border-bottom:1px solid var(--line);
-  }
-  .sidebar-header h2{
-    font-family:'Bebas Neue', sans-serif;
-    font-size:22px; letter-spacing:1px; color:var(--text); margin-bottom:10px;
-  }
+  .sidebar-header{ padding:78px 20px 14px; border-bottom:1px solid var(--line); }
+  .sidebar-header h2{ font-family:'Bebas Neue', sans-serif; font-size:22px; letter-spacing:1px; color:var(--text); margin-bottom:10px; }
   .filters{ display:flex; flex-wrap:wrap; gap:6px; }
-  .chip{
-    font-size:11px; padding:6px 10px; border-radius:999px;
-    border:1px solid var(--line); background:transparent; color:var(--muted);
-    cursor:pointer; font-family:'Space Grotesk', sans-serif; font-weight:600;
-  }
+  .chip{ font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--muted); cursor:pointer; font-family:'Space Grotesk', sans-serif; font-weight:600; }
   .chip.active{ background:var(--pink); border-color:var(--pink); color:#fff; }
-  .chip:focus-visible{ outline:2px solid var(--yellow); outline-offset:2px; }
 
   .event-list{ flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
-  .event-list::-webkit-scrollbar{ width:6px; }
-  .event-list::-webkit-scrollbar-thumb{ background:var(--line); border-radius:3px; }
-
-  .ticket{
-    position:relative;
-    background:var(--panel-2);
-    border-radius:10px;
-    padding:14px 14px 14px 16px;
-    border:1px dashed var(--line);
-    transition: border-color .15s ease, background .15s ease;
-  }
+  .ticket{ position:relative; background:var(--panel-2); border-radius:10px; padding:14px; border:1px dashed var(--line); }
   .ticket:hover{ border-color: var(--cat-color, var(--pink)); background:#242424; }
-  .ticket:before, .ticket:after{
-    content:''; position:absolute; width:12px; height:12px; border-radius:50%;
-    background:var(--bg); top:50%; transform:translateY(-50%);
-  }
-  .ticket:before{ left:-6px; }
-  .ticket:after{ right:-6px; }
-  .ticket .cat-dot{
-    display:inline-block; width:8px; height:8px; border-radius:50%;
-    background:var(--cat-color, var(--pink)); margin-right:6px;
-  }
+  .ticket .cat-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--cat-color, var(--pink)); margin-right:6px; }
   .ticket .cat-label{ font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
   .ticket h3{ font-size:16px; margin:6px 0 4px; color:var(--text); cursor:pointer; }
   .ticket .meta{ font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; cursor:pointer; }
   .ticket .desc{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.4; cursor:pointer; }
   .ticket-actions{ display:flex; gap:8px; margin-top:10px; }
-  .mini-btn{
-    font-size:11px; font-weight:700; padding:6px 10px; border-radius:999px;
-    border:1px solid var(--line); background:transparent; color:var(--muted); cursor:pointer;
-  }
-  .mini-btn:hover{ color:var(--text); border-color:var(--muted); }
+  .mini-btn{ font-size:11px; font-weight:700; padding:6px 10px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--muted); cursor:pointer; }
+  .mini-btn.danger{ display:none; }
   .mini-btn.danger:hover{ color:#fff; border-color:var(--pink); background:var(--pink); }
-  .owner-tag{ font-size:10px; color:var(--yellow); font-weight:700; margin-left:6px; }
 
-  .empty-state{
-    margin:auto; text-align:center; padding:30px 20px; color:var(--muted); font-size:13px; line-height:1.6;
-  }
+  .empty-state{ margin:auto; text-align:center; padding:30px 20px; color:var(--muted); font-size:13px; }
 
   .toggle-sidebar{
-    position:absolute; top:80px; right:340px; z-index:401;
-    background:var(--panel); border:1px solid var(--line); color:var(--text);
-    width:32px; height:32px; border-radius:8px 0 0 8px;
-    cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;
+    position:absolute; top:80px; right:340px; z-index:401; background:var(--panel); border:1px solid var(--line); color:var(--text);
+    width:32px; height:32px; border-radius:8px 0 0 8px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;
     transition: right .25s ease;
   }
   .sidebar.collapsed ~ .toggle-sidebar{ right:0; }
 
-  /* ---------- Modal ---------- */
-  .overlay{
-    position:absolute; inset:0; z-index:900;
-    background:rgba(0,0,0,0.75);
-    display:none; align-items:center; justify-content:center;
-    padding:20px;
-  }
+  /* Modales */
+  .overlay{ position:absolute; inset:0; z-index:900; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; padding:20px; }
   .overlay.show{ display:flex; }
-  .modal{
-    background:var(--panel); border:1px solid var(--line); border-radius:16px;
-    width:100%; max-width:420px; padding:24px; max-height:90vh; overflow-y:auto;
-  }
+  .modal{ background:var(--panel); border:1px solid var(--line); border-radius:16px; width:100%; max-width:420px; padding:24px; max-height:90vh; overflow-y:auto; }
   .modal h2{ font-family:'Bebas Neue', sans-serif; font-size:26px; letter-spacing:1px; margin-bottom:4px; }
-  .modal .sub{ font-size:12px; color:var(--muted); margin-bottom:18px; }
   .field{ margin-bottom:14px; }
   .field label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted); margin-bottom:6px; }
-  .field input, .field textarea, .field select{
-    width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text);
-    padding:10px 12px; border-radius:8px; font-family:'Space Grotesk', sans-serif; font-size:14px;
-  }
-  .field input:focus, .field textarea:focus, .field select:focus{ outline:2px solid var(--pink); outline-offset:1px; border-color:var(--pink); }
+  .field input, .field textarea, .field select{ width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:8px; font-family:'Space Grotesk', sans-serif; font-size:14px; }
   .field textarea{ resize:vertical; min-height:60px; }
   .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .coord-note{ font-size:11px; color:var(--yellow); margin-bottom:14px; }
   .modal-actions{ display:flex; gap:10px; margin-top:18px; }
-  .btn-primary, .btn-secondary{
-    flex:1; padding:12px; border-radius:8px; border:none; font-weight:700; cursor:pointer; font-family:'Space Grotesk', sans-serif;
-  }
+  .btn-primary, .btn-secondary{ flex:1; padding:12px; border-radius:8px; border:none; font-weight:700; cursor:pointer; font-family:'Space Grotesk', sans-serif; }
   .btn-primary{ background:var(--yellow); color:#000; }
   .btn-secondary{ background:transparent; color:var(--muted); border:1px solid var(--line); }
-  .btn-primary:focus-visible, .btn-secondary:focus-visible{ outline:2px solid var(--pink); outline-offset:2px; }
 
-  /* ---------- Marker ---------- */
-  .joda-pin{
-    width:30px; height:38px;
-    display:flex; align-items:center; justify-content:center;
-    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.6));
-  }
-  .joda-pin svg{ width:100%; height:100%; }
-
-  .leaflet-popup-content-wrapper{
-    background:var(--panel-2); color:var(--text); border-radius:12px;
-  }
+  /* Pins & Popups */
+  .joda-pin{ width:30px; height:38px; display:flex; align-items:center; justify-content:center; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.6)); }
+  .leaflet-popup-content-wrapper{ background:var(--panel-2); color:var(--text); border-radius:12px; }
   .leaflet-popup-tip{ background:var(--panel-2); }
   .popup-card .cat-label{ font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
   .popup-card h3{ font-family:'Bebas Neue', sans-serif; font-size:20px; letter-spacing:0.5px; margin:4px 0; }
   .popup-card .meta{ font-size:12px; color:var(--muted); margin-bottom:6px; }
   .popup-card .desc{ font-size:12px; line-height:1.4; }
   .popup-card .popup-actions{ display:flex; gap:8px; margin-top:10px; }
-
-  @media (max-width:640px){
-    .sidebar{ width:100vw; max-width:100vw; }
-    .toggle-sidebar{ right:0; }
-    .sidebar.collapsed ~ .toggle-sidebar{ right:0; }
-    .brand-text h1{ font-size:19px; }
-    .btn-share span.label{ display:none; }
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    *{ transition:none !important; }
-  }
+  
+  /* Estado de Administrador */
+  body.is-admin .btn-add, body.is-admin .mini-btn.danger { display: inline-block !important; }
 </style>
 </head>
 <body>
@@ -271,6 +161,7 @@
   </div>
   <div class="topbar-actions">
     <button class="btn-share" id="btnShareApp">🔗 <span class="label">Compartir</span></button>
+    <button class="btn-login" id="btnLogin">🔑 Admin</button>
     <button class="btn-add" id="btnAdd">+ Agregar joda</button>
   </div>
 </div>
@@ -288,10 +179,11 @@
   <div class="event-list" id="eventList"></div>
 </aside>
 
+<!-- Modal: Nueva Joda -->
 <div class="overlay" id="overlay">
   <div class="modal">
     <h2>Nueva joda</h2>
-    <div class="coord-note" id="coordText">Ubicación marcada en el mapa ✓</div>
+    <div class="coord-note">Ubicación marcada en el mapa ✓</div>
     <form id="eventForm">
       <div class="field">
         <label for="title">Nombre de la joda</label>
@@ -309,7 +201,7 @@
       </div>
       <div class="field">
         <label for="place">Lugar / referencia (opcional)</label>
-        <input id="place" maxlength="80" placeholder="Ej: Rambla y 21, o el nombre del boliche">
+        <input id="place" maxlength="80" placeholder="Ej: Rambla y 21">
       </div>
       <div class="field">
         <label for="category">Categoría</label>
@@ -323,7 +215,7 @@
       </div>
       <div class="field">
         <label for="desc">Info para los invitados</label>
-        <textarea id="desc" maxlength="240" placeholder="Vestimenta, entrada, con quién hablar, etc."></textarea>
+        <textarea id="desc" maxlength="240" placeholder="Entrada, vestimenta, etc."></textarea>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="btnCancel">Cancelar</button>
@@ -333,9 +225,35 @@
   </div>
 </div>
 
+<!-- Modal: Login Admin -->
+<div class="overlay" id="loginOverlay">
+  <div class="modal">
+    <h2>Acceso Admin</h2>
+    <form id="loginForm">
+      <div class="field">
+        <label for="adminEmail">Email</label>
+        <input id="adminEmail" type="email" required placeholder="admin@lanoche.uy">
+      </div>
+      <div class="field">
+        <label for="adminPass">Contraseña</label>
+        <input id="adminPass" type="password" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btnLoginCancel">Cancelar</button>
+        <button type="submit" class="btn-primary">Ingresar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 (function(){
+  // CONFIGURACIÓN DE SUPABASE (REEMPLAZÁ ESTOS DOS VALORES CON LOS TUYOS)
+  const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
+  const SUPABASE_KEY = 'TU-CLAVE-ANON-PUBLIC';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
   const CATS = {
     fiesta:  { label:'Fiesta electrónica', color:'#E4267A' },
     recital: { label:'Recital / banda',    color:'#FF7A1A' },
@@ -343,13 +261,9 @@
     cumple:  { label:'Cumpleaños',         color:'#2ECC71' },
     otro:    { label:'Otro',               color:'#9C9C9C' },
   };
-  const STORAGE_KEY = 'jodas-events';
-  const OWNER_KEY = 'la-noche-uy-owner-id';
 
   const map = L.map('map', { zoomControl:false, attributionControl:false }).setView([-34.9011, -56.1645], 12);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 20
-  }).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 20 }).addTo(map);
   L.control.zoom({ position:'bottomleft' }).addTo(map);
 
   let events = [];
@@ -357,7 +271,7 @@
   let activeFilter = 'all';
   let placing = false;
   let pendingCoords = null;
-  let myOwnerId = null;
+  let isAdmin = false;
 
   function pinIcon(color){
     return L.divIcon({
@@ -366,17 +280,14 @@
               <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 23 15 23s15-12.5 15-23C30 6.7 23.3 0 15 0z" fill="${color}"/>
               <circle cx="15" cy="14" r="6" fill="#0A0A0A"/>
             </svg>`,
-      iconSize:[30,38],
-      iconAnchor:[15,36],
-      popupAnchor:[0,-32],
+      iconSize:[30,38], iconAnchor:[15,36], popupAnchor:[0,-32],
     });
   }
 
   function fmtDate(dateStr, timeStr){
     try{
       const d = new Date(dateStr + 'T' + (timeStr || '00:00'));
-      const opts = { weekday:'short', day:'numeric', month:'short' };
-      return d.toLocaleDateString('es-UY', opts) + ' · ' + (timeStr || '');
+      return d.toLocaleDateString('es-UY', { weekday:'short', day:'numeric', month:'short' }) + ' · ' + (timeStr || '');
     }catch(e){ return dateStr; }
   }
 
@@ -395,59 +306,37 @@
     toastTimer = setTimeout(()=> t.classList.remove('show'), 2600);
   }
 
-  // ---- Owner identity (personal, private per user) ----
-  async function getOwnerId(){
-    try{
-      const res = await window.storage.get(OWNER_KEY, false);
-      if(res && res.value) return res.value;
-    }catch(e){ /* not found yet */ }
-    const id = 'own_' + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2));
-    try{ await window.storage.set(OWNER_KEY, id, false); }catch(e){}
-    return id;
-  }
-
-  // ---- Share helpers ----
-  function shareOrCopy(shareData, copyText, successMsg){
-    if(navigator.share){
-      navigator.share(shareData).catch(()=>{});
-      return;
+  // Cargar datos desde Supabase y escuchar cambios en tiempo real
+  async function initData(){
+    const { data, error } = await supabase.from('jodas').select('*');
+    if(!error && data) {
+      events = data;
+      renderMarkers();
+      renderList();
     }
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(copyText).then(()=> showToast(successMsg)).catch(()=> showToast('No pudimos copiar el link'));
-    }else{
-      showToast(copyText);
-    }
-  }
 
-  function appUrl(){ return window.location.href.split('#')[0]; }
-
-  function eventUrl(ev){ return appUrl() + '#ev=' + encodeURIComponent(ev.id); }
-
-  function shareApp(){
-    shareOrCopy(
-      { title:'La Noche UY', text:'Mirá el mapa de jodas de La Noche UY', url: appUrl() },
-      appUrl(),
-      'Link copiado ✅ Compartilo para que la gente solo pueda ver.'
-    );
-  }
-
-  function shareEvent(ev){
-    const text = `${ev.title} · ${fmtDate(ev.date, ev.time)}${ev.place ? ' · ' + ev.place : ''} — vía La Noche UY`;
-    shareOrCopy(
-      { title: ev.title, text, url: eventUrl(ev) },
-      `${text}\n${eventUrl(ev)}`,
-      'Link de la joda copiado ✅'
-    );
+    // Websockets en tiempo real: Escuchar si se crean o borran jodas
+    supabase.channel('custom-all-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jodas' }, async () => {
+        const { data: updatedData } = await supabase.from('jodas').select('*');
+        if(updatedData){
+          events = updatedData;
+          renderMarkers();
+          renderList();
+        }
+      })
+      .subscribe();
   }
 
   function renderFilters(){
     const el = document.getElementById('filters');
+    el.innerHTML = '';
     const all = document.createElement('button');
     all.className = 'chip' + (activeFilter==='all' ? ' active':'');
     all.textContent = 'Todas';
     all.onclick = () => { activeFilter='all'; renderFilters(); renderList(); };
-    el.innerHTML = '';
     el.appendChild(all);
+
     Object.entries(CATS).forEach(([key,val])=>{
       const b = document.createElement('button');
       b.className = 'chip' + (activeFilter===key ? ' active':'');
@@ -471,15 +360,14 @@
 
   function popupHtml(ev){
     const cat = CATS[ev.category] || CATS.otro;
-    const isOwner = ev.ownerId === myOwnerId;
     return `<div class="popup-card" data-ev="${ev.id}">
-      <div class="cat-label">${cat.label}${isOwner ? ' · vos la creaste' : ''}</div>
+      <div class="cat-label">${cat.label}</div>
       <h3>${escapeHtml(ev.title)}</h3>
       <div class="meta">${ev.place ? escapeHtml(ev.place) + ' · ' : ''}${fmtDate(ev.date, ev.time)}</div>
       ${ev.desc ? `<div class="desc">${escapeHtml(ev.desc)}</div>` : ''}
       <div class="popup-actions">
         <button class="mini-btn" data-action="share">🔗 Compartir</button>
-        ${isOwner ? `<button class="mini-btn danger" data-action="delete">Eliminar</button>` : ''}
+        <button class="mini-btn danger" data-action="delete">Eliminar</button>
       </div>
     </div>`;
   }
@@ -494,12 +382,14 @@
   }
 
   async function deleteEvent(id){
-    if(!confirm('¿Eliminar esta joda? Esta acción no se puede deshacer.')) return;
-    events = events.filter(ev => ev.id !== id);
-    await saveEvents();
-    renderMarkers();
-    renderList();
-    showToast('Joda eliminada');
+    if(!isAdmin) return;
+    if(!confirm('¿Eliminar esta joda del mapa general?')) return;
+    const { error } = await supabase.from('jodas').delete().eq('id', id);
+    if(error){
+      showToast('Error al eliminar');
+    } else {
+      showToast('Joda eliminada');
+    }
   }
 
   function renderList(){
@@ -512,27 +402,24 @@
     if(filtered.length === 0){
       const empty = document.createElement('div');
       empty.className = 'empty-state';
-      empty.textContent = events.length === 0
-        ? 'Todavía no hay jodas cargadas. ¡Tocá el mapa para agregar la primera!'
-        : 'No hay jodas en esta categoría por ahora.';
+      empty.textContent = events.length === 0 ? 'Todavía no hay jodas cargadas.' : 'No hay jodas en esta categoría.';
       list.appendChild(empty);
       return;
     }
 
     filtered.forEach(ev => {
       const cat = CATS[ev.category] || CATS.otro;
-      const isOwner = ev.ownerId === myOwnerId;
       const card = document.createElement('div');
       card.className = 'ticket';
       card.style.setProperty('--cat-color', cat.color);
       card.innerHTML = `
-        <span class="cat-dot"></span><span class="cat-label">${cat.label}</span>${isOwner ? '<span class="owner-tag">TUYA</span>' : ''}
+        <span class="cat-dot"></span><span class="cat-label">${cat.label}</span>
         <h3 data-role="focus">${escapeHtml(ev.title)}</h3>
         <div class="meta" data-role="focus"><span>${ev.place ? '📍 ' + escapeHtml(ev.place) : '📍 en el mapa'}</span><span>🗓 ${fmtDate(ev.date, ev.time)}</span></div>
         ${ev.desc ? `<div class="desc" data-role="focus">${escapeHtml(ev.desc)}</div>` : ''}
         <div class="ticket-actions">
           <button class="mini-btn" data-action="share">🔗 Compartir</button>
-          ${isOwner ? `<button class="mini-btn danger" data-action="delete">Eliminar</button>` : ''}
+          <button class="mini-btn danger" data-action="delete">Eliminar</button>
         </div>
       `;
       card.querySelectorAll('[data-role="focus"]').forEach(node => {
@@ -542,46 +429,67 @@
           if(m) setTimeout(()=> m.openPopup(), 500);
         };
       });
-      const shareBtn = card.querySelector('[data-action="share"]');
-      if(shareBtn) shareBtn.onclick = () => shareEvent(ev);
+      card.querySelector('[data-action="share"]').onclick = () => shareEvent(ev);
       const delBtn = card.querySelector('[data-action="delete"]');
       if(delBtn) delBtn.onclick = () => deleteEvent(ev.id);
       list.appendChild(card);
     });
   }
 
-  async function loadEvents(){
-    try{
-      const res = await window.storage.get(STORAGE_KEY, true);
-      events = res && res.value ? JSON.parse(res.value) : [];
-    }catch(e){
-      events = [];
+  // Compartir
+  function appUrl(){ return window.location.href.split('#')[0]; }
+  function shareEvent(ev){
+    const text = `${ev.title} · ${fmtDate(ev.date, ev.time)} — vía La Noche UY`;
+    navigator.clipboard.writeText(`${text}\n${appUrl()}#ev=${ev.id}`)
+      .then(()=> showToast('Link de la joda copiado ✅'));
+  }
+  document.getElementById('btnShareApp').onclick = () => {
+    navigator.clipboard.writeText(appUrl()).then(()=> showToast('Link copiado ✅'));
+  };
+
+  // Autenticación de Admin
+  const btnLogin = document.getElementById('btnLogin');
+  const loginOverlay = document.getElementById('loginOverlay');
+  
+  btnLogin.onclick = async () => {
+    if(isAdmin){
+      await supabase.auth.signOut();
+      setAdminState(false);
+      showToast('Sesión de Admin cerrada');
+    } else {
+      loginOverlay.classList.add('show');
     }
-    renderMarkers();
-    renderList();
-    focusFromHash();
-  }
+  };
 
-  function focusFromHash(){
-    const match = window.location.hash.match(/ev=([^&]+)/);
-    if(!match) return;
-    const id = decodeURIComponent(match[1]);
-    const ev = events.find(e => e.id === id);
-    if(!ev) return;
-    map.setView([ev.lat, ev.lng], 16);
-    const m = markers[ev.id];
-    if(m) setTimeout(()=> m.openPopup(), 400);
-  }
+  document.getElementById('btnLoginCancel').onclick = () => loginOverlay.classList.remove('show');
 
-  async function saveEvents(){
-    try{
-      await window.storage.set(STORAGE_KEY, JSON.stringify(events), true);
-    }catch(e){
-      console.error('No se pudo guardar', e);
+  document.getElementById('loginForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('adminEmail').value;
+    const password = document.getElementById('adminPass').value;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if(error){
+      alert('Credenciales incorrectas');
+    } else {
+      setAdminState(true);
+      loginOverlay.classList.remove('show');
+      showToast('¡Modo Admin activado!');
     }
+  };
+
+  function setAdminState(active){
+    isAdmin = active;
+    document.body.classList.toggle('is-admin', active);
+    btnLogin.textContent = active ? '🔒 Cerrar Admin' : '🔑 Admin';
   }
 
-  // ---- Add flow: tap map to create ----
+  // Verificar si ya hay sesión activa
+  supabase.auth.getSession().then(({ data }) => {
+    if(data.session) setAdminState(true);
+  });
+
+  // Alta de eventos
   const btnAdd = document.getElementById('btnAdd');
   const hint = document.getElementById('hint');
   const overlay = document.getElementById('overlay');
@@ -614,13 +522,12 @@
     pendingCoords = null;
   };
 
-  document.getElementById('btnShareApp').onclick = shareApp;
-
   form.onsubmit = async (e) => {
     e.preventDefault();
-    if(!pendingCoords) return;
+    if(!pendingCoords || !isAdmin) return;
+
     const newEvent = {
-      id: 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+      id: 'ev_' + Date.now(),
       title: document.getElementById('title').value.trim(),
       date: document.getElementById('date').value,
       time: document.getElementById('time').value,
@@ -628,22 +535,23 @@
       category: document.getElementById('category').value,
       desc: document.getElementById('desc').value.trim(),
       lat: pendingCoords.lat,
-      lng: pendingCoords.lng,
-      createdAt: Date.now(),
-      ownerId: myOwnerId,
+      lng: pendingCoords.lng
     };
-    events.push(newEvent);
-    await saveEvents();
-    renderMarkers();
-    renderList();
-    overlay.classList.remove('show');
-    form.reset();
-    pendingCoords = null;
-    map.flyTo([newEvent.lat, newEvent.lng], 15, { duration:0.6 });
-    showToast('Joda publicada 🎉');
+
+    const { error } = await supabase.from('jodas').insert([newEvent]);
+
+    if(error){
+      showToast('Error al guardar en Supabase');
+    } else {
+      overlay.classList.remove('show');
+      form.reset();
+      pendingCoords = null;
+      map.flyTo([newEvent.lat, newEvent.lng], 15, { duration:0.6 });
+      showToast('Joda publicada en el mapa general 🎉');
+    }
   };
 
-  // ---- Sidebar toggle ----
+  // Toggle Sidebar
   const sidebar = document.getElementById('sidebar');
   const toggleBtn = document.getElementById('toggleSidebar');
   toggleBtn.onclick = () => {
@@ -652,10 +560,7 @@
   };
 
   renderFilters();
-  getOwnerId().then(id => {
-    myOwnerId = id;
-    loadEvents();
-  });
+  initData();
 })();
 </script>
 </body>
